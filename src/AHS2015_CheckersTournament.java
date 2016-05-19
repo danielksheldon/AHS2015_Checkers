@@ -6,6 +6,7 @@ import processing.core.PApplet;
 import processing.core.PConstants;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class AHS2015_CheckersTournament extends PApplet {
 
@@ -70,6 +71,11 @@ public class AHS2015_CheckersTournament extends PApplet {
      **/
     private CheckersGame game;
 
+
+
+
+    HashMap<String, Integer> allBoards;
+
     /**
      * Put your AIs into this array to have them compete in the tournament If
      * you want to play against the AI, make a new HumanAI as one of your
@@ -99,13 +105,19 @@ public class AHS2015_CheckersTournament extends PApplet {
 
         Board b1 = new Board (5,7,3,2040);
         Board b2 = new Board (startingBoard);
+        Board b3 = new Board (startingBoard);
+        allBoards = new HashMap<String, Integer>();
 
+        allBoards.put(b2.toString(), 1);
+        if (!allBoards.containsKey (b3.toString()))
+            System.out.println ("Hmmmm.");
 
         System.out.println (CheckersGame.boardTo (startingBoard));
         System.out.println (b2.toString());
 
 
         System.out.println(CheckersGame.boardTo(CheckersVisualizer.getBoard(5,7,3,2040)));
+
     }
 
     public void setupState () {
@@ -134,6 +146,7 @@ public class AHS2015_CheckersTournament extends PApplet {
         if (game != null) {
             vis.drawScreen(game.board, game.turn, game.winner, game.players,
                     curScore);
+            text (""+allBoards.size(), width/2, 50);
             if (game.needsTime()) {
                 if (!hasPrepped) {
                     hasPrepped = !hasPrepped;
@@ -148,6 +161,9 @@ public class AHS2015_CheckersTournament extends PApplet {
                 if (game.isPlaying()) {
                     if (millis() >= timer) {
                         game.takeTurn();
+                        if (!allBoards.containsKey(CheckersGame.boardTo(game.board))) {
+                            allBoards.put (CheckersGame.boardTo(game.board), 1);
+                        }
                         timer = millis()+RATE;
                     }
                 }
