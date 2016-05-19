@@ -4,16 +4,52 @@ import java.util.ArrayList;
 
 public class MinMaxAI implements CheckersAI, TreeVisualizer {
 
-    int MAX_DEPTH = 9;
+    private int MAX_DEPTH = 9;
 
-    PApplet pApp;
-    GameNode selectedNode;
-    GameNode rootNode;
-    CheckersVisualizer otherVis;
-    int rootTurn;
+    private PApplet pApp;
+    private GameNode selectedNode;
+    private GameNode rootNode;
 
-    public GameNode getRoot() {
+    public MinMaxAI(PApplet p, int d) {
+        pApp = p;
+        MAX_DEPTH = d;
+    }
+
+    /** must be called before getSelected
+     * @param board
+     * @param turn
+     * @return
+     */
+    public GameNode getRoot(int[][] board, int turn) {
+     //   if (rootNode == null)
+     //       makeRoot (board, turn);
         return rootNode;
+    }
+
+    public void reset () {
+        rootNode = null;
+        selectedNode = null;
+    }
+
+    private void makeRoot (int[][] board, int turn) {
+        if (rootNode != null) {
+            System.out.println ("ROOT ALREADY CREATED!");
+        } else {
+            rootNode = new GameNode(board, turn);
+            makeTree(rootNode, 0);
+
+            ArrayList<GameNode> moveOptions = new ArrayList<GameNode>();
+            for (GameNode kid : rootNode.children) {
+                if (kid.recValue == rootNode.recValue) {
+                    moveOptions.add(kid);
+                }
+            }
+
+            if (moveOptions.size() == 0)
+                selectedNode = null;
+            else
+                selectedNode = moveOptions.get((int) (moveOptions.size() * Math.random()));
+        }
     }
 
     public GameNode getSelected() {
@@ -80,30 +116,29 @@ public class MinMaxAI implements CheckersAI, TreeVisualizer {
         return value;
     }
 
-    public MinMaxAI(PApplet p, CheckersVisualizer oVis, int d) {
-        pApp = p;
-        otherVis = oVis;
-        MAX_DEPTH = d;
-    }
 
     public String getName() {
-        return "Branch Vis AI";
+        return "MinMax"+MAX_DEPTH;
     }
 
-    public Move getMove(int[][] board, int turn) {
-        rootTurn = turn;
-        rootNode = new GameNode(board, turn);
-        selectedNode = rootNode;
-        makeTree(rootNode, 0);
 
-        ArrayList<Move> moveOptions = new ArrayList<Move>();
-        for (GameNode kid : rootNode.children) {
-            if (kid.recValue == rootNode.recValue)
-                moveOptions.add(kid.move);
-        }
-        if (moveOptions.size() == 0)
+
+    public Move getMove(int[][] board, int turn) {
+        // if the tree isn't made for some reason...
+        makeRoot(board, turn);
+
+        // if there is no valid move selected
+        if (selectedNode == null)
             return null;
-        return moveOptions.get((int) (moveOptions.size() * Math.random()));
+        // if the user selected a lower level branch to go to
+        while (selectedNode.parent != rootNode) {
+            selectedNode = selectedNode.parent;
+        }
+
+        // return the move to get to the selected node branch
+        Move selectedMove = selectedNode.move;
+
+        return selectedMove;
     }
 
     int getMin(ArrayList<GameNode> kids) {
@@ -146,7 +181,7 @@ public class MinMaxAI implements CheckersAI, TreeVisualizer {
 
 
     public void goUp() {
-        if (selectedNode != rootNode)
+        if (selectedNode.parent != rootNode)
             selectedNode = selectedNode.parent;
     }
 

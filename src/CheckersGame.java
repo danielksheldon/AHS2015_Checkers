@@ -4,7 +4,10 @@
  * @author dsheldon
  * @since 05/11/16
  */
+import java.util.ArrayList;
+
 public class CheckersGame {
+
 
     /** Whose turn it is? RED = 1, BLACK = -1 **/
     public int turn;
@@ -41,15 +44,13 @@ public class CheckersGame {
     /**
      * The # of turns without a capture that lead to a draw
      */
-    final int DRAWCOUNT = 400;
+    final int DRAWCOUNT = 40;
 
     /**
      * The next move an AI will take, when the time is ready -- speeds things up rather than waiting on AIs
      */
     Move nextMove;
 
-
-    boolean needsPrep = true;
 
     /**
      * Constructor for a CheckersGame
@@ -75,7 +76,11 @@ public class CheckersGame {
         turn = 1;
         drawTurns = 0;
         gameState = PLAYING;
-        prepTurn();
+        nextMove = null;
+        if (players[0] instanceof TreeVisualizer)
+            ((TreeVisualizer)players[0]).reset();
+        if (players[1] instanceof TreeVisualizer)
+            ((TreeVisualizer)players[1]).reset();
     }
 
     void playGame() {
@@ -100,75 +105,63 @@ public class CheckersGame {
     public void prepTurn () {
         if (gameState == PLAYING) {
             // If the player doesn't have a move -- game over
-            if (AIHelpers.getAllMoves(board, turn).size() > 0) {
-                if (turn == 1) {
-                    nextMove = players[0].getMove(board, turn);
-                } else {
-                    nextMove = players[1].getMove(board, turn);
+            if (nextMove == null) {
+                if (players[getPI()] instanceof TreeVisualizer)
+                    ((TreeVisualizer)players[getPI()]).reset();
+                if (AIHelpers.getAllMoves(board, turn).size() > 0) {
+                    nextMove = players[getPI()].getMove(board, turn);
                 }
-                needsPrep = false;
             }
         }
-
     }
+
+    boolean isValidMove (Move m) {
+        ArrayList<Move> allMoves = AIHelpers.getAllMoves(board, turn);
+        for (Move goodM : allMoves ) {
+            if (m.equals (goodM))
+                return true;
+        }
+        return false;
+    }
+
+
 
     public void takeTurn() {
         if (gameState == PLAYING) {
-            System.out.println ("In TT");
+
             // If the player doesn't have a move -- game over
             if (AIHelpers.getAllMoves(board, turn).size() == 0) {
                 gameState = GAMEOVER;
                 winner = -turn;
             } else {
+                prepTurn();
                 if (nextMove != null) {
-                    board = AIHelpers.makeMove(board, nextMove, turn);
-                    turn = -turn;
-                    needsPrep = true;
-                    if (lastCount == countPieces()) {
-                        drawTurns++;
-                        if (drawTurns == DRAWCOUNT)
+                    if (isValidMove(nextMove)) {
+
+                        board = AIHelpers.makeMove(board, nextMove, turn);
+                        turn = -turn;
+                        nextMove = null;
+                        if (AIHelpers.getAllMoves(board, turn).size() == 0) {
                             gameState = GAMEOVER;
+                            winner = -turn;
+                        }
+                        if (lastCount == countPieces()) {
+                            drawTurns++;
+                            if (drawTurns >= DRAWCOUNT)
+                                gameState = GAMEOVER;
+                        } else {
+                            drawTurns = 0;
+                            lastCount = countPieces();
+                        }
                     } else {
-                        drawTurns = 0;
-                        lastCount = countPieces();
+                        System.out.println ("Invalid Move: " + nextMove);
                     }
+                } else {
+
                 }
             }
         }
     }
-
-
-//    /**
-//     * Updates the game to take the next turn from one of the AI players
-//     */
-//    public void takeTurn() {
-//        if (gameState == PLAYING) {
-//            // If the player doesn't have a move -- game over
-//            if (AIHelpers.getAllMoves(board, turn).size() == 0) {
-//                gameState = GAMEOVER;
-//                winner = -turn;
-//            } else {
-//                Move m;
-//                if (turn == 1) {
-//                    m = players[0].getMove(board, turn);
-//                } else {
-//                    m = players[1].getMove(board, turn);
-//                }
-//                if (m != null) {
-//                    board = AIHelpers.makeMove(board, m, turn);
-//                    turn = -turn;
-//                    if (lastCount == countPieces()) {
-//                        drawTurns++;
-//                        if (drawTurns == DRAWCOUNT)
-//                            gameState = GAMEOVER;
-//                    } else {
-//                        drawTurns = 0;
-//                        lastCount = countPieces();
-//                    }
-//                }
-//            }
-//        }
-//    }
 
     int getPI () {
         if (turn == -1)
@@ -201,7 +194,7 @@ public class CheckersGame {
         if (players[getPI()] instanceof TreeVisualizer) {
             board = ((TreeVisualizer) players[getPI()]).getSelected().board;
             turn = ((TreeVisualizer) players[getPI()]).getSelected().turn;
-            needsPrep = true;
+            nextMove = null;
         }
     }
 
@@ -212,11 +205,8 @@ public class CheckersGame {
      */
     public void clicked(int cell) {
         if (cell >= 0 && cell < 64) {
-            int pI = 0;
-            if (turn == -1)
-                pI = 1;
-            if (players[pI] instanceof HumanAI)
-                ((HumanAI) players[pI]).clicked(cell, board);
+            if (players[getPI()] instanceof HumanAI)
+                ((HumanAI) players[getPI()]).clicked(cell, board);
         }
     }
 
@@ -231,7 +221,7 @@ public class CheckersGame {
     }
 
     public boolean needsTime () {
-        return needsPrep;
+        return nextMove == null;
     }
 
     public boolean isGameOver() {
@@ -243,7 +233,7 @@ public class CheckersGame {
     }
 
     static String boardTo(int[][] board) {
-        String h = "Bb.rR";
+        String h = "Ww.rR";
         String retString = "";
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {

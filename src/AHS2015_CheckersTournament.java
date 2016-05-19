@@ -12,8 +12,9 @@ public class AHS2015_CheckersTournament extends PApplet {
     /**
      * Starting Board
      **/
-    // int [][] startingBoard = AIHelpers.startBoard;
-    int[][] startingBoard = AIHelpers.endBoard;
+ //   int [][] startingBoard = AIHelpers.endBoard;
+    int [][] startingBoard = AIHelpers.startBoard;
+    //int[][] startingBoard = AIHelpers.oddBoard;
 
     /**
      * Wether or not you want to watch all the moves
@@ -23,12 +24,12 @@ public class AHS2015_CheckersTournament extends PApplet {
     /**
      * Number of games played between opponents
      **/
-    int NUM_GAMES = 1;
+    int NUM_GAMES = 50;
 
     /**
      * The number of draw cycles in between each players turn
      **/
-    public int RATE = 1;
+    public int RATE = 10;
     /**
      * Timer to only advance the turn of the game every RATE cycles through draw
      **/
@@ -76,11 +77,14 @@ public class AHS2015_CheckersTournament extends PApplet {
      * 2nd
      **/
     public CheckersAI[] setPlayers() {
-        CheckersAI[] newPlayers = new CheckersAI[2];
+        CheckersAI[] newPlayers = new CheckersAI[4];
         //	newPlayers[0] = new HumanAI(1);
-        newPlayers[1] = new MinMaxAI(this, vis, 4);
-        // newPlayers[1] = new RandomAI();
-        newPlayers[0] = new MinMaxAI(this, vis, 9);
+         newPlayers[1] = new RandomAI();
+        newPlayers[0] = new RandomAI();
+        newPlayers[0] = new MinMaxAI(this, 2);
+        newPlayers[1] = new MinMaxAI(this, 4);
+        newPlayers[2] = new MinMaxAI(this, 6);
+        newPlayers[3] = new MinMaxAI(this, 8);
         return newPlayers;
     }
 
@@ -91,6 +95,20 @@ public class AHS2015_CheckersTournament extends PApplet {
         size(1200, 500);
         rectMode(PConstants.CENTER);
         imageMode(PConstants.CENTER);
+        setupState();
+
+        Board b1 = new Board (5,7,3,2040);
+        Board b2 = new Board (startingBoard);
+
+
+        System.out.println (CheckersGame.boardTo (startingBoard));
+        System.out.println (b2.toString());
+
+
+        System.out.println(CheckersGame.boardTo(CheckersVisualizer.getBoard(5,7,3,2040)));
+    }
+
+    public void setupState () {
         vis = new CheckersVisualizer(this);
 
         players = setPlayers();
@@ -103,28 +121,34 @@ public class AHS2015_CheckersTournament extends PApplet {
             game = new CheckersGame(startingBoard, players[p1Index],
                     players[p2Index]);
         gameCount = 0;
+        timer = millis() + RATE;
     }
+
+    boolean hasPrepped = false;
 
     /**
      * Run over and over and over again, about 60 times a second
      **/
     public void draw() {
-        //@TODO Showing the tree
         vis.drawTournament(allScores, players);
         if (game != null) {
             vis.drawScreen(game.board, game.turn, game.winner, game.players,
                     curScore);
             if (game.needsTime()) {
-                if (watchGame)
-                    vis.printThinking();
-                game.prepTurn();
+                if (!hasPrepped) {
+                    hasPrepped = !hasPrepped;
+                    if (watchGame)
+                        vis.printThinking();
+                } else {
+                    game.prepTurn();
+                    hasPrepped = !hasPrepped;
+                }
             }
             if (watchGame) {
                 if (game.isPlaying()) {
-                    timer++;
-                    if (timer >= RATE) {
+                    if (millis() >= timer) {
                         game.takeTurn();
-                        timer = 0;
+                        timer = millis()+RATE;
                     }
                 }
             } else {
@@ -153,6 +177,7 @@ public class AHS2015_CheckersTournament extends PApplet {
 
                     game = new CheckersGame(startingBoard, players[p1Index],
                             players[p2Index]);
+
                 }
             }
 
@@ -176,7 +201,7 @@ public class AHS2015_CheckersTournament extends PApplet {
         else if (keyCode == ENTER) {
             game.goSelected();
         } else
-            timer = RATE;
+            timer = millis();
     }
 
     /**
